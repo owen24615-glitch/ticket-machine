@@ -2,185 +2,229 @@
 <html lang="en-GB">
 <head>
 <meta charset="UTF-8">
-<title>Bus Ticket Machine</title>
+<title>Ticket Machine</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
 body{
-  background:#111;
-  font-family:Arial,Helvetica,sans-serif;
+  background:#d9dde3;
+  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
   display:flex;
   justify-content:center;
   align-items:center;
   height:100vh;
   margin:0;
-  color:#fff;
 }
+
 .machine{
-  background:#2b2b2b;
-  width:380px;
-  border-radius:14px;
-  padding:14px;
+  background:#f2f4f7;
+  width:390px;
+  border-radius:10px;
+  padding:12px;
+  box-shadow:0 6px 18px rgba(0,0,0,0.25);
 }
+
+/* Header bar */
+.header{
+  background:#0076c8;
+  color:white;
+  padding:10px;
+  border-radius:6px;
+  font-weight:600;
+  text-align:center;
+  margin-bottom:8px;
+}
+
+/* Screen */
 .screen{
-  background:#0a2b12;
-  color:#7CFF9E;
-  font-family:"Courier New",monospace;
+  background:#ffffff;
+  color:#000;
+  font-family:"Segoe UI", Arial, sans-serif;
   padding:12px;
   height:120px;
-  border-radius:8px;
+  border-radius:6px;
   margin-bottom:10px;
   white-space:pre-line;
+  border:2px solid #cfd6df;
 }
+
+/* Buttons */
 .buttons{
   display:grid;
   grid-template-columns:repeat(3,1fr);
   gap:8px;
 }
+
 button{
-  padding:12px;
+  padding:14px 0;
+  font-size:15px;
   border:none;
-  border-radius:6px;
-  background:#444;
-  color:#fff;
+  border-radius:4px;
+  background:#e3e7ec;
+  color:#000;
   cursor:pointer;
+  font-weight:600;
 }
-button:hover{background:#666;}
-.pay{background:#0b5ed7;}
-.cancel{background:#a30000;}
-.route{background:#5a2ca0;}
-.print{background:#0f7a2f;}
-.setup{background:#aa7a00;}
-.totals{background:#006b6b;}
+
+button:hover{
+  background:#d6dbe2;
+}
+
+/* Key colours */
+.enter{ background:#0076c8; color:#fff; }
+.enter:hover{ background:#005fa3; }
+
+.cancel{ background:#d92d20; color:#fff; }
+.cancel:hover{ background:#b42318; }
+
+.pay{ background:#0e9384; color:#fff; }
+.pay:hover{ background:#107569; }
+
+.print{ background:#344054; color:#fff; }
+.print:hover{ background:#1f2937; }
+
+.setup{ background:#f79009; color:#000; }
+.totals{ background:#475467; color:#fff; }
+
+.full{
+  width:100%;
+  margin-top:6px;
+}
 </style>
 </head>
 
 <body>
 
 <div class="machine">
+
+  <div class="header">TICKETING SYSTEM</div>
+
   <div class="screen" id="screen">ENTER DRIVER PIN</div>
 
+  <!-- Keypad -->
   <div class="buttons" id="keypad">
-    <button onclick="key('1')">1</button><button onclick="key('2')">2</button><button onclick="key('3')">3</button>
-    <button onclick="key('4')">4</button><button onclick="key('5')">5</button><button onclick="key('6')">6</button>
-    <button onclick="key('7')">7</button><button onclick="key('8')">8</button><button onclick="key('9')">9</button>
+    <button onclick="pressKey('1')">1</button>
+    <button onclick="pressKey('2')">2</button>
+    <button onclick="pressKey('3')">3</button>
+    <button onclick="pressKey('4')">4</button>
+    <button onclick="pressKey('5')">5</button>
+    <button onclick="pressKey('6')">6</button>
+    <button onclick="pressKey('7')">7</button>
+    <button onclick="pressKey('8')">8</button>
+    <button onclick="pressKey('9')">9</button>
     <button class="cancel" onclick="clearInput()">CLR</button>
-    <button onclick="key('0')">0</button>
-    <button class="route" onclick="enter()">ENT</button>
+    <button onclick="pressKey('0')">0</button>
+    <button class="enter" onclick="enter()">ENT</button>
   </div>
 
+  <!-- Ticket sale -->
   <div class="buttons" id="sell" style="display:none;">
-    <button onclick="ticket('adult')">Adult</button>
-    <button onclick="ticket('child')">Child</button>
-    <button onclick="ticket('day')">Day</button>
+    <button onclick="selectTicket('adult')">Adult</button>
+    <button onclick="selectTicket('child')">Child</button>
+    <button onclick="selectTicket('day')">Day</button>
     <button class="pay" onclick="pay('Card')">Card</button>
     <button class="pay" onclick="pay('Cash')">Cash</button>
-    <button class="cancel" onclick="reset()">Cancel</button>
+    <button class="cancel" onclick="resetSale()">Cancel</button>
   </div>
 
-  <button class="print" id="printBtn" style="display:none;width:100%;" onclick="printTicket()">PRINT</button>
-  <button class="setup" style="width:100%;margin-top:6px;" onclick="setupMenu()">SETUP</button>
-  <button class="totals" style="width:100%;margin-top:6px;" onclick="showTotals()">TOTALS</button>
+  <button class="print full" id="printBtn" style="display:none;" onclick="printTicket()">PRINT TICKET</button>
+  <button class="setup full" onclick="setupMenu()">SETUP</button>
+  <button class="totals full" onclick="showTotals()">TOTALS</button>
+
 </div>
 
 <script>
 const DRIVER_PIN="1234";
 const SETUP_PIN="9999";
 
-let routes = JSON.parse(localStorage.getItem("routes")) || {};
-let totals = { tickets:0, cash:0, card:0, revenue:0 };
+let routes=JSON.parse(localStorage.getItem("routes"))||{};
+let totals={tickets:0,cash:0,card:0,revenue:0};
 
-let input="", stage="login";
-let currentRoute="", currentFare=0, payment="";
+let input="",stage="login",currentRoute="",currentFare=0,payment="";
 
-function saveRoutes(){ localStorage.setItem("routes",JSON.stringify(routes)); }
-function update(t){ screen.textContent=t; }
+function updateScreen(t){document.getElementById("screen").textContent=t;}
 
-function key(n){ input+=n; update("*".repeat(input.length)); }
-function clearInput(){ input=""; update(stage==="login"?"ENTER DRIVER PIN":"ENTER"); }
+function pressKey(n){input+=n;updateScreen("*".repeat(input.length));}
+function clearInput(){input="";updateScreen(stage==="login"?"ENTER DRIVER PIN":"ENTER ROUTE");}
 
 function enter(){
   if(stage==="login"){
-    if(input===DRIVER_PIN){ stage="route"; input=""; update("ENTER ROUTE"); }
-    else{ input=""; update("INVALID PIN"); }
+    if(input===DRIVER_PIN){stage="route";input="";updateScreen("ENTER ROUTE");}
+    else{input="";updateScreen("INVALID PIN");}
+    return;
   }
-  else if(stage==="route"){
-    if(!routes[input]){ update("ROUTE NOT FOUND"); input=""; return; }
+  if(stage==="route"){
+    if(!routes[input]){input="";updateScreen("ROUTE NOT FOUND");return;}
     currentRoute=input;
     stage="sell";
+    input="";
     keypad.style.display="none";
     sell.style.display="grid";
-    update(`ROUTE ${input}\n${routes[input].dest}\nSELECT TICKET`);
+    updateScreen("ROUTE "+currentRoute+"\n"+routes[currentRoute].dest+"\nSELECT TICKET");
   }
 }
 
-function ticket(type){
+function selectTicket(type){
   currentFare=routes[currentRoute][type];
-  update(type.toUpperCase()+" £"+currentFare.toFixed(2));
+  updateScreen(type.toUpperCase()+"  £"+currentFare.toFixed(2));
 }
 
 function pay(m){
   payment=m;
   printBtn.style.display="block";
-  update(`PAYMENT\n${m}\nAPPROVED`);
+  updateScreen("PAYMENT\n"+m+"\nAPPROVED");
 }
 
 function printTicket(){
   totals.tickets++;
   totals.revenue+=currentFare;
-  payment==="Cash" ? totals.cash+=currentFare : totals.card+=currentFare;
-  update("PRINTING...\nTHANK YOU");
-  setTimeout(reset,1200);
+  payment==="Cash"?totals.cash+=currentFare:totals.card+=currentFare;
+  updateScreen("PRINTING...\nTHANK YOU");
+  setTimeout(resetSale,1200);
 }
 
-function reset(){
+function resetSale(){
   stage="route";
+  currentFare=0;payment="";
   keypad.style.display="grid";
   sell.style.display="none";
   printBtn.style.display="none";
-  update("ENTER ROUTE");
+  updateScreen("ENTER ROUTE");
 }
 
-/* ===== SETUP MENU ===== */
 function setupMenu(){
-  if(prompt("SETUP PIN")!==SETUP_PIN) return alert("DENIED");
-
-  const action=prompt("1 = ADD\n2 = EDIT\n3 = DELETE");
-  if(action==="1") addRoute();
-  if(action==="2") editRoute();
-  if(action==="3") deleteRoute();
+  if(prompt("SETUP PIN")!==SETUP_PIN)return alert("DENIED");
+  const a=prompt("1=ADD\n2=EDIT\n3=DELETE");
+  if(a==="1")addRoute();
+  if(a==="2")editRoute();
+  if(a==="3")deleteRoute();
 }
 
 function addRoute(){
   const r=prompt("Route:");
-  routes[r]={
-    dest:prompt("Destination:"),
-    adult:+prompt("Adult fare:"),
-    child:+prompt("Child fare:"),
-    day:+prompt("Day fare:")
-  };
-  saveRoutes(); alert("Route added");
+  routes[r]={dest:prompt("Destination:"),adult:+prompt("Adult:"),child:+prompt("Child:"),day:+prompt("Day:")};
+  localStorage.setItem("routes",JSON.stringify(routes));
 }
 
 function editRoute(){
-  const r=prompt("Route to edit:");
-  if(!routes[r]) return alert("Not found");
+  const r=prompt("Route:");
+  if(!routes[r])return alert("Not found");
   routes[r].dest=prompt("Destination:",routes[r].dest);
   routes[r].adult=+prompt("Adult:",routes[r].adult);
   routes[r].child=+prompt("Child:",routes[r].child);
   routes[r].day=+prompt("Day:",routes[r].day);
-  saveRoutes(); alert("Route updated");
+  localStorage.setItem("routes",JSON.stringify(routes));
 }
 
 function deleteRoute(){
-  const r=prompt("Route to delete:");
-  if(!routes[r]) return alert("Not found");
+  const r=prompt("Route:");
+  if(!routes[r])return alert("Not found");
   delete routes[r];
-  saveRoutes(); alert("Route deleted");
+  localStorage.setItem("routes",JSON.stringify(routes));
 }
 
-/* ===== TOTALS ===== */
 function showTotals(){
-  update(
+  updateScreen(
 `END OF SHIFT
 --------------
 Tickets: ${totals.tickets}
