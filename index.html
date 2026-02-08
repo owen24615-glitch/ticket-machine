@@ -15,16 +15,13 @@ body{
   height:100vh;
   margin:0;
 }
-
 .machine{
   background:#f2f4f7;
-  width:390px;
+  width:400px;
   border-radius:10px;
   padding:12px;
   box-shadow:0 6px 18px rgba(0,0,0,0.25);
 }
-
-/* Header bar */
 .header{
   background:#0076c8;
   color:white;
@@ -34,27 +31,22 @@ body{
   text-align:center;
   margin-bottom:8px;
 }
-
-/* Screen */
 .screen{
   background:#ffffff;
   color:#000;
   font-family:"Segoe UI", Arial, sans-serif;
   padding:12px;
-  height:120px;
+  height:160px;
   border-radius:6px;
   margin-bottom:10px;
   white-space:pre-line;
   border:2px solid #cfd6df;
 }
-
-/* Buttons */
 .buttons{
   display:grid;
   grid-template-columns:repeat(3,1fr);
   gap:8px;
 }
-
 button{
   padding:14px 0;
   font-size:15px;
@@ -65,38 +57,26 @@ button{
   cursor:pointer;
   font-weight:600;
 }
-
-button:hover{
-  background:#d6dbe2;
-}
-
-/* Key colours */
+button:hover{background:#d6dbe2;}
 .enter{ background:#0076c8; color:#fff; }
 .enter:hover{ background:#005fa3; }
-
 .cancel{ background:#d92d20; color:#fff; }
 .cancel:hover{ background:#b42318; }
-
 .pay{ background:#0e9384; color:#fff; }
 .pay:hover{ background:#107569; }
-
 .print{ background:#344054; color:#fff; }
 .print:hover{ background:#1f2937; }
-
 .setup{ background:#f79009; color:#000; }
 .totals{ background:#475467; color:#fff; }
-
-.full{
-  width:100%;
-  margin-top:6px;
-}
+.trip{ background:#16a34a; color:#fff; }
+.trip:hover{ background:#15803d; }
+.full{width:100%; margin-top:6px;}
 </style>
 </head>
 
 <body>
 
 <div class="machine">
-
   <div class="header">TICKETING SYSTEM</div>
 
   <div class="screen" id="screen">ENTER DRIVER PIN</div>
@@ -127,10 +107,12 @@ button:hover{
     <button class="cancel" onclick="resetSale()">Cancel</button>
   </div>
 
+  <button class="trip full" id="startTripBtn" onclick="startTrip()" style="display:none;">START TRIP</button>
+  <button class="trip full" id="endTripBtn" onclick="endTrip()" style="display:none;">END TRIP</button>
+
   <button class="print full" id="printBtn" style="display:none;" onclick="printTicket()">PRINT TICKET</button>
   <button class="setup full" onclick="setupMenu()">SETUP</button>
   <button class="totals full" onclick="showTotals()">TOTALS</button>
-
 </div>
 
 <script>
@@ -140,10 +122,9 @@ const SETUP_PIN="9999";
 let routes=JSON.parse(localStorage.getItem("routes"))||{};
 let totals={tickets:0,cash:0,card:0,revenue:0};
 
-let input="",stage="login",currentRoute="",currentFare=0,payment="";
+let input="",stage="login",currentRoute="",currentFare=0,payment="",tripActive=false,direction="outbound";
 
 function updateScreen(t){document.getElementById("screen").textContent=t;}
-
 function pressKey(n){input+=n;updateScreen("*".repeat(input.length));}
 function clearInput(){input="";updateScreen(stage==="login"?"ENTER DRIVER PIN":"ENTER ROUTE");}
 
@@ -156,22 +137,41 @@ function enter(){
   if(stage==="route"){
     if(!routes[input]){input="";updateScreen("ROUTE NOT FOUND");return;}
     currentRoute=input;
-    stage="sell";
+    stage="routeSelected";
     input="";
-    keypad.style.display="none";
-    sell.style.display="grid";
-    updateScreen("ROUTE "+currentRoute+"\n"+routes[currentRoute].dest+"\nSELECT TICKET");
+    document.getElementById("keypad").style.display="none";
+    document.getElementById("startTripBtn").style.display="block";
+    direction="outbound";
+    updateScreen("ROUTE "+currentRoute+"\n"+routes[currentRoute][direction]+"\nPRESS START TRIP");
   }
 }
 
+function startTrip(){
+  tripActive=true;
+  document.getElementById("sell").style.display="grid";
+  document.getElementById("startTripBtn").style.display="none";
+  document.getElementById("endTripBtn").style.display="block";
+  updateScreen("TRIP STARTED\nROUTE "+currentRoute+"\n"+routes[currentRoute][direction]);
+}
+
+function endTrip(){
+  tripActive=false;
+  document.getElementById("sell").style.display="none";
+  document.getElementById("endTripBtn").style.display="none";
+  document.getElementById("keypad").style.display="grid";
+  updateScreen("TRIP ENDED\nENTER ROUTE");
+}
+
 function selectTicket(type){
-  currentFare=routes[currentRoute][type];
+  if(!tripActive){updateScreen("START TRIP FIRST");return;}
+  currentFare=routes[currentRoute][type+"_"+direction]||0;
   updateScreen(type.toUpperCase()+"  £"+currentFare.toFixed(2));
 }
 
 function pay(m){
+  if(!tripActive){updateScreen("START TRIP FIRST");return;}
   payment=m;
-  printBtn.style.display="block";
+  document.getElementById("printBtn").style.display="block";
   updateScreen("PAYMENT\n"+m+"\nAPPROVED");
 }
 
@@ -180,44 +180,53 @@ function printTicket(){
   totals.revenue+=currentFare;
   payment==="Cash"?totals.cash+=currentFare:totals.card+=currentFare;
   updateScreen("PRINTING...\nTHANK YOU");
-  setTimeout(resetSale,1200);
 }
 
 function resetSale(){
-  stage="route";
   currentFare=0;payment="";
-  keypad.style.display="grid";
-  sell.style.display="none";
-  printBtn.style.display="none";
-  updateScreen("ENTER ROUTE");
+  document.getElementById("printBtn").style.display="none";
+  updateScreen("TRIP ACTIVE\nROUTE "+currentRoute+"\n"+routes[currentRoute][direction]);
 }
 
 function setupMenu(){
   if(prompt("SETUP PIN")!==SETUP_PIN)return alert("DENIED");
   const a=prompt("1=ADD\n2=EDIT\n3=DELETE");
-  if(a==="1")addRoute();
-  if(a==="2")editRoute();
-  if(a==="3")deleteRoute();
+  if(a==="1") addRoute();
+  if(a==="2") editRoute();
+  if(a==="3") deleteRoute();
 }
 
 function addRoute(){
-  const r=prompt("Route:");
-  routes[r]={dest:prompt("Destination:"),adult:+prompt("Adult:"),child:+prompt("Child:"),day:+prompt("Day:")};
+  const r=prompt("Route number:");
+  routes[r]={
+    outbound:prompt("Outbound destination:"),
+    inbound:prompt("Inbound destination:"),
+    adult_outbound:+prompt("Adult fare outbound:"),
+    child_outbound:+prompt("Child fare outbound:"),
+    day_outbound:+prompt("Day fare outbound:"),
+    adult_inbound:+prompt("Adult fare inbound:"),
+    child_inbound:+prompt("Child fare inbound:"),
+    day_inbound:+prompt("Day fare inbound:")
+  };
   localStorage.setItem("routes",JSON.stringify(routes));
 }
 
 function editRoute(){
-  const r=prompt("Route:");
+  const r=prompt("Route number to edit:");
   if(!routes[r])return alert("Not found");
-  routes[r].dest=prompt("Destination:",routes[r].dest);
-  routes[r].adult=+prompt("Adult:",routes[r].adult);
-  routes[r].child=+prompt("Child:",routes[r].child);
-  routes[r].day=+prompt("Day:",routes[r].day);
+  routes[r].outbound=prompt("Outbound destination:",routes[r].outbound);
+  routes[r].inbound=prompt("Inbound destination:",routes[r].inbound);
+  routes[r].adult_outbound=+prompt("Adult fare outbound:",routes[r].adult_outbound);
+  routes[r].child_outbound=+prompt("Child fare outbound:",routes[r].child_outbound);
+  routes[r].day_outbound=+prompt("Day fare outbound:",routes[r].day_outbound);
+  routes[r].adult_inbound=+prompt("Adult fare inbound:",routes[r].adult_inbound);
+  routes[r].child_inbound=+prompt("Child fare inbound:",routes[r].child_inbound);
+  routes[r].day_inbound=+prompt("Day fare inbound:",routes[r].day_inbound);
   localStorage.setItem("routes",JSON.stringify(routes));
 }
 
 function deleteRoute(){
-  const r=prompt("Route:");
+  const r=prompt("Route number to delete:");
   if(!routes[r])return alert("Not found");
   delete routes[r];
   localStorage.setItem("routes",JSON.stringify(routes));
