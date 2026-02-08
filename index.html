@@ -3,25 +3,29 @@
 <head>
 <meta charset="UTF-8">
 <title>Ticket Machine</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <style>
 body{
   background:#d9dde3;
-  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+  font-family:"Segoe UI", Arial, Helvetica, sans-serif;
   display:flex;
   justify-content:center;
-  align-items:center;
-  height:100vh;
+  align-items:flex-start;
+  padding-top:20px;
+  min-height:100vh;
   margin:0;
 }
+
 .machine{
   background:#f2f4f7;
-  width:400px;
+  width:90%;
+  max-width:400px;
   border-radius:10px;
   padding:12px;
   box-shadow:0 6px 18px rgba(0,0,0,0.25);
 }
+
 .header{
   background:#0076c8;
   color:white;
@@ -31,25 +35,28 @@ body{
   text-align:center;
   margin-bottom:8px;
 }
+
 .screen{
   background:#ffffff;
   color:#000;
   font-family:"Segoe UI", Arial, sans-serif;
   padding:12px;
-  height:160px;
+  min-height:140px;
   border-radius:6px;
   margin-bottom:10px;
   white-space:pre-line;
   border:2px solid #cfd6df;
 }
+
 .buttons{
   display:grid;
   grid-template-columns:repeat(3,1fr);
   gap:8px;
 }
+
 button{
   padding:14px 0;
-  font-size:15px;
+  font-size:16px;
   border:none;
   border-radius:4px;
   background:#e3e7ec;
@@ -57,6 +64,7 @@ button{
   cursor:pointer;
   font-weight:600;
 }
+
 button:hover{background:#d6dbe2;}
 .enter{ background:#0076c8; color:#fff; }
 .enter:hover{ background:#005fa3; }
@@ -70,7 +78,14 @@ button:hover{background:#d6dbe2;}
 .totals{ background:#475467; color:#fff; }
 .trip{ background:#16a34a; color:#fff; }
 .trip:hover{ background:#15803d; }
-.full{width:100%; margin-top:6px;}
+.full{ width:100%; margin-top:6px; font-size:16px; }
+
+/* Portrait adjustments */
+@media (orientation: portrait) {
+  .machine { width:95%; max-width:360px; }
+  button { font-size:18px; padding:16px 0; }
+  .screen { min-height:160px; }
+}
 </style>
 </head>
 
@@ -80,7 +95,6 @@ button:hover{background:#d6dbe2;}
   <div class="header">TICKETING SYSTEM</div>
   <div class="screen" id="screen">ENTER DRIVER PIN</div>
 
-  <!-- Keypad -->
   <div class="buttons" id="keypad">
     <button onclick="pressKey('1')">1</button>
     <button onclick="pressKey('2')">2</button>
@@ -96,7 +110,6 @@ button:hover{background:#d6dbe2;}
     <button class="enter" onclick="enter()">ENT</button>
   </div>
 
-  <!-- Ticket sale -->
   <div class="buttons" id="sell" style="display:none;">
     <button onclick="selectTicket('adult')">Adult</button>
     <button onclick="selectTicket('child')">Child</button>
@@ -121,7 +134,7 @@ const SETUP_PIN="9999";
 let routes=JSON.parse(localStorage.getItem("routes"))||{};
 let totals={tickets:0,cash:0,card:0,revenue:0};
 
-let input="", stage="login", currentRoute="", currentFare=0, currentFarePaidMethod="", payment="", tripActive=false, direction="outbound";
+let input="", stage="login", currentRoute="", currentFare=0, currentFarePaidMethod="", tripActive=false, direction="outbound";
 
 function updateScreen(t){document.getElementById("screen").textContent=t;}
 function pressKey(n){input+=n;updateScreen("*".repeat(input.length));}
@@ -173,7 +186,7 @@ function selectTicket(type){
 
 function pay(method){
   if(!tripActive){updateScreen("START TRIP FIRST"); return;}
-  currentFarePaidMethod = method; // temporary storage for this ticket
+  currentFarePaidMethod = method; 
   updateScreen("PAYMENT\n"+method+"\nAPPROVED\nPRESS PRINT");
   document.getElementById("printBtn").style.display="block";
 }
@@ -186,7 +199,6 @@ function printTicket(){
 
   updateScreen("PRINTING...\nTHANK YOU");
   
-  // Reset for next ticket while staying in trip
   currentFare = 0;
   currentFarePaidMethod = "";
   document.getElementById("printBtn").style.display="none";
