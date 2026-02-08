@@ -121,7 +121,7 @@ const SETUP_PIN="9999";
 let routes=JSON.parse(localStorage.getItem("routes"))||{};
 let totals={tickets:0,cash:0,card:0,revenue:0};
 
-let input="", stage="login", currentRoute="", currentFare=0, payment="", tripActive=false, direction="outbound";
+let input="", stage="login", currentRoute="", currentFare=0, currentFarePaidMethod="", payment="", tripActive=false, direction="outbound";
 
 function updateScreen(t){document.getElementById("screen").textContent=t;}
 function pressKey(n){input+=n;updateScreen("*".repeat(input.length));}
@@ -171,22 +171,30 @@ function selectTicket(type){
   updateScreen(type.toUpperCase()+"  £"+currentFare.toFixed(2));
 }
 
-function pay(m){
-  if(!tripActive){updateScreen("START TRIP FIRST");return;}
-  payment=m;
+function pay(method){
+  if(!tripActive){updateScreen("START TRIP FIRST"); return;}
+  currentFarePaidMethod = method; // temporary storage for this ticket
+  updateScreen("PAYMENT\n"+method+"\nAPPROVED\nPRESS PRINT");
   document.getElementById("printBtn").style.display="block";
-  updateScreen("PAYMENT\n"+m+"\nAPPROVED");
 }
 
 function printTicket(){
   totals.tickets++;
-  totals.revenue+=currentFare;
-  payment==="Cash"?totals.cash+=currentFare:totals.card+=currentFare;
+  totals.revenue += currentFare;
+  if(currentFarePaidMethod === "Cash") totals.cash += currentFare;
+  else totals.card += currentFare;
+
   updateScreen("PRINTING...\nTHANK YOU");
+  
+  // Reset for next ticket while staying in trip
+  currentFare = 0;
+  currentFarePaidMethod = "";
+  document.getElementById("printBtn").style.display="none";
+  updateScreen("TRIP ACTIVE\nROUTE "+currentRoute+"\n"+routes[currentRoute][direction]);
 }
 
 function resetSale(){
-  currentFare=0;payment="";
+  currentFare=0; currentFarePaidMethod="";
   document.getElementById("printBtn").style.display="none";
   if(tripActive) updateScreen("TRIP ACTIVE\nROUTE "+currentRoute+"\n"+routes[currentRoute][direction]);
 }
