@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<title>Bus Ticket Machine</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{
+  background:#111;
+  font-family:Arial,Helvetica,sans-serif;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  margin:0;
+  color:#fff;
+}
+.machine{
+  background:#2b2b2b;
+  width:380px;
+  border-radius:14px;
+  padding:14px;
+}
+.screen{
+  background:#0a2b12;
+  color:#7CFF9E;
+  font-family:"Courier New",monospace;
+  padding:12px;
+  height:120px;
+  border-radius:8px;
+  margin-bottom:10px;
+  white-space:pre-line;
+}
+.buttons{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+}
+button{
+  padding:12px;
+  border:none;
+  border-radius:6px;
+  background:#444;
+  color:#fff;
+  cursor:pointer;
+}
+button:hover{background:#666;}
+.pay{background:#0b5ed7;}
+.cancel{background:#a30000;}
+.route{background:#5a2ca0;}
+.print{background:#0f7a2f;}
+.setup{background:#aa7a00;}
+.totals{background:#006b6b;}
+</style>
+</head>
+
+<body>
+
+<div class="machine">
+  <div class="screen" id="screen">ENTER DRIVER PIN</div>
+
+  <div class="buttons" id="keypad">
+    <button onclick="key('1')">1</button><button onclick="key('2')">2</button><button onclick="key('3')">3</button>
+    <button onclick="key('4')">4</button><button onclick="key('5')">5</button><button onclick="key('6')">6</button>
+    <button onclick="key('7')">7</button><button onclick="key('8')">8</button><button onclick="key('9')">9</button>
+    <button class="cancel" onclick="clearInput()">CLR</button>
+    <button onclick="key('0')">0</button>
+    <button class="route" onclick="enter()">ENT</button>
+  </div>
+
+  <div class="buttons" id="sell" style="display:none;">
+    <button onclick="ticket('adult')">Adult</button>
+    <button onclick="ticket('child')">Child</button>
+    <button onclick="ticket('day')">Day</button>
+    <button class="pay" onclick="pay('Card')">Card</button>
+    <button class="pay" onclick="pay('Cash')">Cash</button>
+    <button class="cancel" onclick="reset()">Cancel</button>
+  </div>
+
+  <button class="print" id="printBtn" style="display:none;width:100%;" onclick="printTicket()">PRINT</button>
+  <button class="setup" style="width:100%;margin-top:6px;" onclick="setupMenu()">SETUP</button>
+  <button class="totals" style="width:100%;margin-top:6px;" onclick="showTotals()">TOTALS</button>
+</div>
+
+<script>
+const DRIVER_PIN="1234";
+const SETUP_PIN="9999";
+
+let routes = JSON.parse(localStorage.getItem("routes")) || {};
+let totals = { tickets:0, cash:0, card:0, revenue:0 };
+
+let input="", stage="login";
+let currentRoute="", currentFare=0, payment="";
+
+function saveRoutes(){ localStorage.setItem("routes",JSON.stringify(routes)); }
+function update(t){ screen.textContent=t; }
+
+function key(n){ input+=n; update("*".repeat(input.length)); }
+function clearInput(){ input=""; update(stage==="login"?"ENTER DRIVER PIN":"ENTER"); }
+
+function enter(){
+  if(stage==="login"){
+    if(input===DRIVER_PIN){ stage="route"; input=""; update("ENTER ROUTE"); }
+    else{ input=""; update("INVALID PIN"); }
+  }
+  else if(stage==="route"){
+    if(!routes[input]){ update("ROUTE NOT FOUND"); input=""; return; }
+    currentRoute=input;
+    stage="sell";
+    keypad.style.display="none";
+    sell.style.display="grid";
+    update(`ROUTE ${input}\n${routes[input].dest}\nSELECT TICKET`);
+  }
+}
+
+function ticket(type){
+  currentFare=routes[currentRoute][type];
+  update(type.toUpperCase()+" £"+currentFare.toFixed(2));
+}
+
+function pay(m){
+  payment=m;
+  printBtn.style.display="block";
+  update(`PAYMENT\n${m}\nAPPROVED`);
+}
+
+function printTicket(){
+  totals.tickets++;
+  totals.revenue+=currentFare;
+  payment==="Cash" ? totals.cash+=currentFare : totals.card+=currentFare;
+  update("PRINTING...\nTHANK YOU");
+  setTimeout(reset,1200);
+}
+
+function reset(){
+  stage="route";
+  keypad.style.display="grid";
+  sell.style.display="none";
+  printBtn.style.display="none";
+  update("ENTER ROUTE");
+}
+
+/* ===== SETUP MENU ===== */
+function setupMenu(){
+  if(prompt("SETUP PIN")!==SETUP_PIN) return alert("DENIED");
+
+  const action=prompt("1 = ADD\n2 = EDIT\n3 = DELETE");
+  if(action==="1") addRoute();
+  if(action==="2") editRoute();
+  if(action==="3") deleteRoute();
+}
+
+function addRoute(){
+  const r=prompt("Route:");
+  routes[r]={
+    dest:prompt("Destination:"),
+    adult:+prompt("Adult fare:"),
+    child:+prompt("Child fare:"),
+    day:+prompt("Day fare:")
+  };
+  saveRoutes(); alert("Route added");
+}
+
+function editRoute(){
+  const r=prompt("Route to edit:");
+  if(!routes[r]) return alert("Not found");
+  routes[r].dest=prompt("Destination:",routes[r].dest);
+  routes[r].adult=+prompt("Adult:",routes[r].adult);
+  routes[r].child=+prompt("Child:",routes[r].child);
+  routes[r].day=+prompt("Day:",routes[r].day);
+  saveRoutes(); alert("Route updated");
+}
+
+function deleteRoute(){
+  const r=prompt("Route to delete:");
+  if(!routes[r]) return alert("Not found");
+  delete routes[r];
+  saveRoutes(); alert("Route deleted");
+}
+
+/* ===== TOTALS ===== */
+function showTotals(){
+  update(
+`END OF SHIFT
+--------------
+Tickets: ${totals.tickets}
+Cash: £${totals.cash.toFixed(2)}
+Card: £${totals.card.toFixed(2)}
+--------------
+TOTAL: £${totals.revenue.toFixed(2)}`
+  );
+}
+</script>
+
+</body>
+</html>
