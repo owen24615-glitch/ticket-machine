@@ -1,271 +1,228 @@
 <!DOCTYPE html>
-<html lang="en-GB">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Ticket Machine</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ticket Machine</title>
 
 <style>
 body{
-  background:#d9dde3;
-  font-family:"Segoe UI", Arial, Helvetica, sans-serif;
+  margin:0;
+  background:#1e2228;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont;
   display:flex;
   justify-content:center;
-  align-items:flex-start;
-  padding-top:20px;
+  align-items:center;
   min-height:100vh;
-  margin:0;
 }
 
 .machine{
-  background:#f2f4f7;
-  width:90%;
-  max-width:400px;
-  border-radius:10px;
-  padding:12px;
-  box-shadow:0 6px 18px rgba(0,0,0,0.25);
+  width:380px;
+  height:90vh;
+  background:#2b2f36;
+  border-radius:18px;
+  box-shadow:0 10px 40px rgba(0,0,0,.6);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
 }
 
 .header{
-  background:#0076c8;
-  color:white;
-  padding:10px;
-  border-radius:6px;
-  font-weight:600;
+  background:#0b0d11;
+  color:#fff;
+  padding:14px;
   text-align:center;
-  margin-bottom:8px;
+  font-weight:700;
+  letter-spacing:1px;
 }
 
 .screen{
-  background:#ffffff;
-  color:#000;
-  font-family:"Segoe UI", Arial, sans-serif;
+  flex:1;
+  background:#111;
+  color:#00ff9c;
   padding:12px;
-  min-height:140px;
-  border-radius:6px;
-  margin-bottom:10px;
+  font-family:monospace;
+  overflow:auto;
   white-space:pre-line;
-  border:2px solid #cfd6df;
 }
 
 .buttons{
+  background:#1a1d23;
+  padding:10px;
   display:grid;
-  grid-template-columns:repeat(3,1fr);
+  grid-template-columns:1fr 1fr;
   gap:8px;
 }
 
 button{
-  padding:14px 0;
-  font-size:16px;
+  padding:14px;
+  font-size:14px;
+  font-weight:700;
   border:none;
-  border-radius:4px;
-  background:#e3e7ec;
-  color:#000;
-  cursor:pointer;
-  font-weight:600;
+  border-radius:10px;
+  background:#3a3f48;
+  color:#fff;
 }
 
-button:hover{background:#d6dbe2;}
-.enter{ background:#0076c8; color:#fff; }
-.enter:hover{ background:#005fa3; }
-.cancel{ background:#d92d20; color:#fff; }
-.cancel:hover{ background:#b42318; }
-.pay{ background:#0e9384; color:#fff; }
-.pay:hover{ background:#107569; }
-.print{ background:#344054; color:#fff; }
-.print:hover{ background:#1f2937; }
-.setup{ background:#f79009; color:#000; }
-.totals{ background:#475467; color:#fff; }
-.trip{ background:#16a34a; color:#fff; }
-.trip:hover{ background:#15803d; }
-.full{ width:100%; margin-top:6px; font-size:16px; }
+button.primary{background:#00aaff;}
+button.danger{background:#c0392b;}
+button.admin{background:#8e44ad;}
+button.green{background:#27ae60;}
 
-/* Portrait adjustments */
-@media (orientation: portrait) {
-  .machine { width:95%; max-width:360px; }
-  button { font-size:18px; padding:16px 0; }
-  .screen { min-height:160px; }
-}
+.hidden{display:none;}
 </style>
 </head>
 
 <body>
 
 <div class="machine">
-  <div class="header">TICKETING SYSTEM</div>
+  <div class="header">TICKETER</div>
   <div class="screen" id="screen">ENTER DRIVER PIN</div>
 
-  <div class="buttons" id="keypad">
-    <button onclick="pressKey('1')">1</button>
-    <button onclick="pressKey('2')">2</button>
-    <button onclick="pressKey('3')">3</button>
-    <button onclick="pressKey('4')">4</button>
-    <button onclick="pressKey('5')">5</button>
-    <button onclick="pressKey('6')">6</button>
-    <button onclick="pressKey('7')">7</button>
-    <button onclick="pressKey('8')">8</button>
-    <button onclick="pressKey('9')">9</button>
-    <button class="cancel" onclick="clearInput()">CLR</button>
-    <button onclick="pressKey('0')">0</button>
-    <button class="enter" onclick="enter()">ENT</button>
+  <div class="buttons" id="loginPad">
+    <button onclick="num(1)">1</button><button onclick="num(2)">2</button>
+    <button onclick="num(3)">3</button><button onclick="num(4)">4</button>
+    <button onclick="num(5)">5</button><button onclick="num(6)">6</button>
+    <button onclick="num(7)">7</button><button onclick="num(8)">8</button>
+    <button onclick="num(9)">9</button><button onclick="num(0)">0</button>
+    <button onclick="clearPin()">CLEAR</button>
+    <button class="primary" onclick="login()">ENTER</button>
   </div>
 
-  <div class="buttons" id="sell" style="display:none;">
-    <button onclick="selectTicket('adult')">Adult</button>
-    <button onclick="selectTicket('child')">Child</button>
-    <button onclick="selectTicket('day')">Day</button>
-    <button class="pay" onclick="pay('Card')">Card</button>
-    <button class="pay" onclick="pay('Cash')">Cash</button>
-    <button class="cancel" onclick="resetSale()">Cancel</button>
+  <div class="buttons hidden" id="mainPad">
+    <button class="green" onclick="startTrip()">START TRIP</button>
+    <button class="danger" onclick="endTrip()">END TRIP</button>
+    <button onclick="sell('cash')">CASH £2</button>
+    <button onclick="sell('card')">CARD £2</button>
+    <button onclick="showMessages()">MESSAGES</button>
+    <button onclick="logout()">LOG OUT</button>
+
+    <button class="admin hidden" id="adminView" onclick="adminSwitch()">VIEW DRIVER</button>
+    <button class="admin hidden" id="adminReturn" onclick="adminReturn()">RETURN ADMIN</button>
+    <button class="admin hidden" id="adminMsg" onclick="adminMessage()">MESSAGE DRIVER</button>
   </div>
-
-  <button class="trip full" id="startTripBtn" onclick="startTrip()" style="display:none;">START TRIP</button>
-  <button class="trip full" id="endTripBtn" onclick="endTrip()" style="display:none;">END TRIP</button>
-
-  <button class="print full" id="printBtn" style="display:none;" onclick="printTicket()">PRINT TICKET</button>
-  <button class="setup full" onclick="setupMenu()">SETUP</button>
-  <button class="totals full" onclick="showTotals()">TOTALS</button>
 </div>
 
 <script>
-const DRIVER_PIN="1234";
-const SETUP_PIN="9999";
+const adminCode = "889448";
 
-let routes=JSON.parse(localStorage.getItem("routes"))||{};
-let totals={tickets:0,cash:0,card:0,revenue:0};
+let users = {};
+let enteredPin = "";
+let loggedInCode = null;
+let viewingCode = null;
+let adminActive = false;
+let tripActive = false;
 
-let input="", stage="login", currentRoute="", currentFare=0, currentFarePaidMethod="", tripActive=false, direction="outbound";
+const screen = document.getElementById("screen");
 
-function updateScreen(t){document.getElementById("screen").textContent=t;}
-function pressKey(n){input+=n;updateScreen("*".repeat(input.length));}
-function clearInput(){input="";updateScreen(stage==="login"?"ENTER DRIVER PIN":"ENTER ROUTE");}
-
-function enter(){
-  if(stage==="login"){
-    if(input===DRIVER_PIN){stage="route";input="";updateScreen("ENTER ROUTE");}
-    else{input="";updateScreen("INVALID PIN");}
-    return;
+function num(n){
+  if(enteredPin.length<6){
+    enteredPin+=n;
+    screen.textContent="PIN: "+enteredPin;
   }
-  if(stage==="route"){
-    if(!routes[input]){input="";updateScreen("ROUTE NOT FOUND");return;}
-    currentRoute=input;
-    stage="routeSelected";
-    input="";
-    document.getElementById("keypad").style.display="none";
-    document.getElementById("startTripBtn").style.display="block";
+}
 
-    // Choose direction
-    let dir = prompt("Select direction:\n1 = Outbound\n2 = Inbound","1");
-    direction = (dir==="2")?"inbound":"outbound";
-    updateScreen("ROUTE "+currentRoute+"\n"+routes[currentRoute][direction]+"\nPRESS START TRIP");
+function clearPin(){
+  enteredPin="";
+  screen.textContent="ENTER DRIVER PIN";
+}
+
+function login(){
+  if(enteredPin.length!==6)return;
+
+  if(!users[enteredPin]){
+    users[enteredPin]={
+      code:enteredPin,
+      cash:0,
+      card:0,
+      messages:[]
+    };
   }
+
+  loggedInCode = enteredPin;
+  viewingCode = enteredPin;
+  adminActive = (enteredPin===adminCode);
+  enteredPin="";
+
+  document.getElementById("loginPad").classList.add("hidden");
+  document.getElementById("mainPad").classList.remove("hidden");
+
+  if(adminActive){
+    document.getElementById("adminView").classList.remove("hidden");
+    document.getElementById("adminMsg").classList.remove("hidden");
+  }
+
+  showDashboard();
+}
+
+function showDashboard(){
+  let u = users[viewingCode];
+  screen.textContent =
+`DRIVER: ${viewingCode}
+${adminActive && viewingCode!==loggedInCode ? "ADMIN VIEW\n" : ""}
+TRIP: ${tripActive?"ACTIVE":"STOPPED"}
+
+CASH: £${u.cash}
+CARD: £${u.card}
+
+MESSAGES: ${u.messages.length}`;
 }
 
 function startTrip(){
   tripActive=true;
-  document.getElementById("sell").style.display="grid";
-  document.getElementById("startTripBtn").style.display="none";
-  document.getElementById("endTripBtn").style.display="block";
-  updateScreen("TRIP STARTED\nROUTE "+currentRoute+"\n"+routes[currentRoute][direction]);
+  showDashboard();
 }
 
 function endTrip(){
   tripActive=false;
-  currentRoute=""; stage="route";
-  document.getElementById("sell").style.display="none";
-  document.getElementById("endTripBtn").style.display="none";
-  document.getElementById("keypad").style.display="grid";
-  updateScreen("TRIP ENDED\nENTER ROUTE");
+  showDashboard();
 }
 
-function selectTicket(type){
-  if(!tripActive){updateScreen("START TRIP FIRST");return;}
-  currentFare=routes[currentRoute][type+"_"+direction]||0;
-  updateScreen(type.toUpperCase()+"  £"+currentFare.toFixed(2));
+function sell(type){
+  if(!tripActive)return alert("START TRIP FIRST");
+  users[viewingCode][type]+=2;
+  showDashboard();
 }
 
-function pay(method){
-  if(!tripActive){updateScreen("START TRIP FIRST"); return;}
-  currentFarePaidMethod = method; 
-  updateScreen("PAYMENT\n"+method+"\nAPPROVED\nPRESS PRINT");
-  document.getElementById("printBtn").style.display="block";
+function logout(){
+  location.reload();
 }
 
-function printTicket(){
-  totals.tickets++;
-  totals.revenue += currentFare;
-  if(currentFarePaidMethod === "Cash") totals.cash += currentFare;
-  else totals.card += currentFare;
+/* ADMIN FEATURES */
 
-  updateScreen("PRINTING...\nTHANK YOU");
-  
-  currentFare = 0;
-  currentFarePaidMethod = "";
-  document.getElementById("printBtn").style.display="none";
-  updateScreen("TRIP ACTIVE\nROUTE "+currentRoute+"\n"+routes[currentRoute][direction]);
+function adminSwitch(){
+  let code = prompt("ENTER DRIVER CODE");
+  if(!users[code]) return alert("NOT FOUND");
+  viewingCode = code;
+  document.getElementById("adminReturn").classList.remove("hidden");
+  showDashboard();
 }
 
-function resetSale(){
-  currentFare=0; currentFarePaidMethod="";
-  document.getElementById("printBtn").style.display="none";
-  if(tripActive) updateScreen("TRIP ACTIVE\nROUTE "+currentRoute+"\n"+routes[currentRoute][direction]);
+function adminReturn(){
+  viewingCode = loggedInCode;
+  document.getElementById("adminReturn").classList.add("hidden");
+  showDashboard();
 }
 
-function setupMenu(){
-  if(prompt("SETUP PIN")!==SETUP_PIN)return alert("DENIED");
-  const a=prompt("1=ADD\n2=EDIT\n3=DELETE");
-  if(a==="1") addRoute();
-  if(a==="2") editRoute();
-  if(a==="3") deleteRoute();
+function adminMessage(){
+  let code = prompt("SEND TO DRIVER CODE");
+  if(!users[code]) return alert("NOT FOUND");
+  let msg = prompt("MESSAGE");
+  users[code].messages.push(msg);
+  alert("SENT");
 }
 
-function addRoute(){
-  const r=prompt("Route number:");
-  routes[r]={
-    outbound:prompt("Outbound destination:"),
-    inbound:prompt("Inbound destination:"),
-    adult_outbound:+prompt("Adult fare outbound:"),
-    child_outbound:+prompt("Child fare outbound:"),
-    day_outbound:+prompt("Day fare outbound:"),
-    adult_inbound:+prompt("Adult fare inbound:"),
-    child_inbound:+prompt("Child fare inbound:"),
-    day_inbound:+prompt("Day fare inbound:")
-  };
-  localStorage.setItem("routes",JSON.stringify(routes));
-}
+/* DRIVER MESSAGES */
 
-function editRoute(){
-  const r=prompt("Route number to edit:");
-  if(!routes[r])return alert("Not found");
-  routes[r].outbound=prompt("Outbound destination:",routes[r].outbound);
-  routes[r].inbound=prompt("Inbound destination:",routes[r].inbound);
-  routes[r].adult_outbound=+prompt("Adult fare outbound:",routes[r].adult_outbound);
-  routes[r].child_outbound=+prompt("Child fare outbound:",routes[r].child_outbound);
-  routes[r].day_outbound=+prompt("Day fare outbound:",routes[r].day_outbound);
-  routes[r].adult_inbound=+prompt("Adult fare inbound:",routes[r].adult_inbound);
-  routes[r].child_inbound=+prompt("Child fare inbound:",routes[r].child_inbound);
-  routes[r].day_inbound=+prompt("Day fare inbound:",routes[r].day_inbound);
-  localStorage.setItem("routes",JSON.stringify(routes));
-}
-
-function deleteRoute(){
-  const r=prompt("Route number to delete:");
-  if(!routes[r])return alert("Not found");
-  delete routes[r];
-  localStorage.setItem("routes",JSON.stringify(routes));
-}
-
-function showTotals(){
-  updateScreen(
-`END OF SHIFT
---------------
-Tickets: ${totals.tickets}
-Cash: £${totals.cash.toFixed(2)}
-Card: £${totals.card.toFixed(2)}
---------------
-TOTAL: £${totals.revenue.toFixed(2)}`
-  );
+function showMessages(){
+  let msgs = users[viewingCode].messages;
+  if(msgs.length===0){
+    screen.textContent="NO MESSAGES";
+    return;
+  }
+  screen.textContent="MESSAGES:\n\n"+msgs.map((m,i)=>`${i+1}. ${m}`).join("\n");
 }
 </script>
+
 </body>
 </html>
