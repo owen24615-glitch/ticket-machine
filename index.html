@@ -1,22 +1,20 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-GB">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Ticket Machine</title>
-
+<title>Ticketer ETM</title>
 <style>
-body{
+body {
   margin:0;
   background:#1e2228;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont;
+  font-family:system-ui, -apple-system, BlinkMacSystemFont;
   display:flex;
   justify-content:center;
   align-items:center;
   min-height:100vh;
 }
-
-.machine{
+.machine {
   width:380px;
   height:90vh;
   background:#2b2f36;
@@ -26,8 +24,7 @@ body{
   flex-direction:column;
   overflow:hidden;
 }
-
-.header{
+.header {
   background:#0b0d11;
   color:#fff;
   padding:14px;
@@ -35,8 +32,7 @@ body{
   font-weight:700;
   letter-spacing:1px;
 }
-
-.screen{
+.screen {
   flex:1;
   background:#111;
   color:#00ff9c;
@@ -45,182 +41,207 @@ body{
   overflow:auto;
   white-space:pre-line;
 }
-
-.buttons{
+.buttons {
   background:#1a1d23;
   padding:10px;
   display:grid;
-  grid-template-columns:1fr 1fr;
+  grid-template-columns:repeat(3,1fr);
   gap:8px;
 }
-
-button{
-  padding:14px;
-  font-size:14px;
+button {
+  padding:20px 0;
+  font-size:18px;
   font-weight:700;
   border:none;
   border-radius:10px;
   background:#3a3f48;
   color:#fff;
+  cursor:pointer;
 }
-
-button.primary{background:#00aaff;}
-button.danger{background:#c0392b;}
-button.admin{background:#8e44ad;}
+button.primary{background:#0076c8;}
+button.danger{background:#d92d20;}
 button.green{background:#27ae60;}
-
+button.admin{background:#8e44ad;}
 .hidden{display:none;}
 </style>
 </head>
-
 <body>
 
 <div class="machine">
-  <div class="header">TICKETER</div>
-  <div class="screen" id="screen">ENTER DRIVER PIN</div>
+  <div class="header">TICKETER ETM</div>
+  <div class="screen" id="screen">ENTER 6-DIGIT DRIVER CODE</div>
 
+  <!-- LOGIN KEYPAD: Proper Ticketer 3x4 -->
   <div class="buttons" id="loginPad">
-    <button onclick="num(1)">1</button><button onclick="num(2)">2</button>
-    <button onclick="num(3)">3</button><button onclick="num(4)">4</button>
-    <button onclick="num(5)">5</button><button onclick="num(6)">6</button>
-    <button onclick="num(7)">7</button><button onclick="num(8)">8</button>
-    <button onclick="num(9)">9</button><button onclick="num(0)">0</button>
-    <button onclick="clearPin()">CLEAR</button>
-    <button class="primary" onclick="login()">ENTER</button>
+    <button onclick="num(1)">1</button>
+    <button onclick="num(2)">2</button>
+    <button onclick="num(3)">3</button>
+
+    <button onclick="num(4)">4</button>
+    <button onclick="num(5)">5</button>
+    <button onclick="num(6)">6</button>
+
+    <button onclick="num(7)">7</button>
+    <button onclick="num(8)">8</button>
+    <button onclick="num(9)">9</button>
+
+    <button class="danger" onclick="clearPin()">CLR</button>
+    <button onclick="num(0)">0</button>
+    <button class="primary" onclick="login()">ENT</button>
   </div>
 
+  <!-- MAIN CONTROLS -->
   <div class="buttons hidden" id="mainPad">
     <button class="green" onclick="startTrip()">START TRIP</button>
     <button class="danger" onclick="endTrip()">END TRIP</button>
-    <button onclick="sell('cash')">CASH £2</button>
-    <button onclick="sell('card')">CARD £2</button>
+    <button onclick="selectRoute()">ROUTE</button>
+    <button onclick="sell('cash')">CASH</button>
+    <button onclick="sell('card')">CARD</button>
     <button onclick="showMessages()">MESSAGES</button>
     <button onclick="logout()">LOG OUT</button>
 
     <button class="admin hidden" id="adminView" onclick="adminSwitch()">VIEW DRIVER</button>
     <button class="admin hidden" id="adminReturn" onclick="adminReturn()">RETURN ADMIN</button>
     <button class="admin hidden" id="adminMsg" onclick="adminMessage()">MESSAGE DRIVER</button>
+    <button class="admin hidden" id="adminSetup" onclick="setupMenu()">SETUP ROUTES</button>
   </div>
 </div>
 
 <script>
-const adminCode = "889448";
+const adminCode="889448";
+let users={};
+let enteredPin="";
+let loggedInCode=null;
+let viewingCode=null;
+let adminActive=false;
+let tripActive=false;
+let currentRoute=null;
 
-let users = {};
-let enteredPin = "";
-let loggedInCode = null;
-let viewingCode = null;
-let adminActive = false;
-let tripActive = false;
+const screen=document.getElementById("screen");
 
-const screen = document.getElementById("screen");
-
+// LOGIN
 function num(n){
-  if(enteredPin.length<6){
-    enteredPin+=n;
-    screen.textContent="PIN: "+enteredPin;
-  }
+  if(enteredPin.length<6){enteredPin+=n;screen.textContent="CODE: "+enteredPin;}
 }
-
-function clearPin(){
-  enteredPin="";
-  screen.textContent="ENTER DRIVER PIN";
-}
-
+function clearPin(){enteredPin="";screen.textContent="ENTER 6-DIGIT DRIVER CODE";}
 function login(){
-  if(enteredPin.length!==6)return;
+  if(enteredPin.length!==6) return;
 
   if(!users[enteredPin]){
-    users[enteredPin]={
-      code:enteredPin,
-      cash:0,
-      card:0,
-      messages:[]
-    };
+    users[enteredPin]={code:enteredPin, routes:{}, totals:{cash:0,card:0}, messages:[]};
   }
 
-  loggedInCode = enteredPin;
-  viewingCode = enteredPin;
-  adminActive = (enteredPin===adminCode);
+  loggedInCode=enteredPin;
+  viewingCode=enteredPin;
+  adminActive=(enteredPin===adminCode);
   enteredPin="";
 
   document.getElementById("loginPad").classList.add("hidden");
   document.getElementById("mainPad").classList.remove("hidden");
-
   if(adminActive){
     document.getElementById("adminView").classList.remove("hidden");
+    document.getElementById("adminReturn").classList.remove("hidden");
     document.getElementById("adminMsg").classList.remove("hidden");
+    document.getElementById("adminSetup").classList.remove("hidden");
   }
-
   showDashboard();
 }
 
+// DASHBOARD
 function showDashboard(){
-  let u = users[viewingCode];
-  screen.textContent =
-`DRIVER: ${viewingCode}
-${adminActive && viewingCode!==loggedInCode ? "ADMIN VIEW\n" : ""}
+  let u=users[viewingCode];
+  screen.textContent=
+`DRIVER: ${viewingCode}${adminActive && viewingCode!==loggedInCode ? "\nADMIN VIEW" : ""}
 TRIP: ${tripActive?"ACTIVE":"STOPPED"}
+ROUTE: ${currentRoute?currentRoute+" ("+u.routes[currentRoute].direction+")":"NONE"}
 
-CASH: £${u.cash}
-CARD: £${u.card}
-
+CASH: £${u.totals.cash.toFixed(2)}
+CARD: £${u.totals.card.toFixed(2)}
 MESSAGES: ${u.messages.length}`;
 }
 
-function startTrip(){
-  tripActive=true;
+// TRIPS
+function startTrip(){tripActive=true;showDashboard();}
+function endTrip(){tripActive=false;currentRoute=null;showDashboard();}
+
+// ROUTES
+function selectRoute(){
+  let u=users[viewingCode];
+  let r=prompt("Enter Route Code:");
+  if(!u.routes[r]){alert("ROUTE NOT FOUND");return;}
+  let dir=prompt("Inbound or Outbound? (IN/OUT)","IN");
+  u.routes[r].direction=dir.toUpperCase();
+  currentRoute=r;
   showDashboard();
 }
 
-function endTrip(){
-  tripActive=false;
-  showDashboard();
-}
-
+// TICKET SALES
 function sell(type){
-  if(!tripActive)return alert("START TRIP FIRST");
-  users[viewingCode][type]+=2;
+  if(!tripActive){alert("START TRIP FIRST");return;}
+  if(!currentRoute){alert("SELECT ROUTE FIRST");return;}
+  let u=users[viewingCode];
+  let fare=u.routes[currentRoute].fare || 2; // default £2
+  if(type==="cash") u.totals.cash+=fare;
+  if(type==="card") u.totals.card+=fare;
   showDashboard();
 }
 
-function logout(){
-  location.reload();
-}
+// LOGOUT
+function logout(){location.reload();}
 
-/* ADMIN FEATURES */
-
+// ADMIN FUNCTIONS
 function adminSwitch(){
-  let code = prompt("ENTER DRIVER CODE");
-  if(!users[code]) return alert("NOT FOUND");
-  viewingCode = code;
-  document.getElementById("adminReturn").classList.remove("hidden");
+  if(!adminActive)return;
+  let code=prompt("ENTER DRIVER CODE");
+  if(!users[code]){alert("NOT FOUND");return;}
+  viewingCode=code;
   showDashboard();
 }
-
-function adminReturn(){
-  viewingCode = loggedInCode;
-  document.getElementById("adminReturn").classList.add("hidden");
-  showDashboard();
-}
-
+function adminReturn(){viewingCode=loggedInCode;showDashboard();}
 function adminMessage(){
-  let code = prompt("SEND TO DRIVER CODE");
-  if(!users[code]) return alert("NOT FOUND");
-  let msg = prompt("MESSAGE");
+  if(!adminActive)return;
+  let code=prompt("SEND TO DRIVER CODE");
+  if(!users[code]){alert("NOT FOUND");return;}
+  let msg=prompt("MESSAGE");
   users[code].messages.push(msg);
   alert("SENT");
 }
 
-/* DRIVER MESSAGES */
-
+// DRIVER MESSAGES
 function showMessages(){
-  let msgs = users[viewingCode].messages;
-  if(msgs.length===0){
-    screen.textContent="NO MESSAGES";
-    return;
-  }
+  let msgs=users[viewingCode].messages;
+  if(msgs.length===0){screen.textContent="NO MESSAGES";return;}
   screen.textContent="MESSAGES:\n\n"+msgs.map((m,i)=>`${i+1}. ${m}`).join("\n");
+}
+
+// ADMIN ROUTE SETUP
+function setupMenu(){
+  if(!adminActive)return;
+  let action=prompt("1=ADD ROUTE, 2=EDIT ROUTE, 3=DELETE ROUTE");
+  if(action==="1") addRoute();
+  if(action==="2") editRoute();
+  if(action==="3") deleteRoute();
+}
+function addRoute(){
+  let code=prompt("Route Code:");
+  let dest=prompt("Destination:");
+  let fare=parseFloat(prompt("Fare (£):","2"));
+  users[loggedInCode].routes[code]={dest:dest,fare:fare,direction:"IN"};
+  alert("ROUTE ADDED");
+}
+function editRoute(){
+  let code=prompt("Route Code:");
+  let r=users[loggedInCode].routes[code];
+  if(!r){alert("NOT FOUND");return;}
+  r.dest=prompt("Destination:",r.dest);
+  r.fare=parseFloat(prompt("Fare (£):",r.fare));
+  alert("UPDATED");
+}
+function deleteRoute(){
+  let code=prompt("Route Code:");
+  if(!users[loggedInCode].routes[code]){alert("NOT FOUND");return;}
+  delete users[loggedInCode].routes[code];
+  alert("DELETED");
 }
 </script>
 
