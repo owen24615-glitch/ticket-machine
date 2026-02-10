@@ -88,9 +88,9 @@ input, select, textarea {
 
 <!-- CREATE ACCOUNT -->
 <div id="create" class="screen hidden">
-  <h3>Create Account</h3>
+  <h3>Create Account / Company</h3>
   <input id="newEmail" placeholder="Email">
-  <input id="newUser" placeholder="Username">
+  <input id="newUser" placeholder="Username / Company Name">
   <input id="newPin" placeholder="6-digit PIN" type="password">
   <button class="btn" onclick="createAccount()">Create</button>
   <button class="btn" onclick="backLogin()">Back</button>
@@ -109,7 +109,8 @@ input, select, textarea {
 <div id="routes" class="screen hidden">
   <h3>Routes</h3>
   <input id="routeName" placeholder="Route name">
-  <textarea id="routeDetails" placeholder="Route details (stops, times, notes)"></textarea>
+  <textarea id="routeOutbound" placeholder="Outbound stops, times, notes"></textarea>
+  <textarea id="routeInbound" placeholder="Inbound stops, times, notes"></textarea>
   <button class="btn" onclick="addRoute()">Add route</button>
   <div id="routeList"></div>
   <button class="btn" onclick="backMenu()">Back</button>
@@ -190,7 +191,7 @@ function createAccount() {
   if (d[u]) return alert("User exists");
   d[u] = { email: newEmail.value, pin: newPin.value, routes: [], fleet: [], boards: [] };
   saveData(d);
-  alert("Account created");
+  alert("Account / Company created");
   backLogin();
 }
 
@@ -198,14 +199,20 @@ function logout() { currentUser=null; show("login"); }
 
 function addRoute() {
   const d = getData();
-  d[currentUser].routes.push({ name: routeName.value, details: routeDetails.value });
+  d[currentUser].routes.push({
+    name: routeName.value,
+    outbound: routeOutbound.value,
+    inbound: routeInbound.value
+  });
   saveData(d); render();
 }
+
 function addVehicle() {
   const d = getData();
   d[currentUser].fleet.push({ name: veh.value, details: vehDetails.value });
   saveData(d); render();
 }
+
 function addBoard() {
   const d = getData();
   d[currentUser].boards.push({ name: board.value, details: boardDetails.value });
@@ -217,10 +224,19 @@ function editItem(type, index) {
   const item = d[currentUser][type][index];
   const newName = prompt("Edit name:", item.name);
   if(newName===null) return;
-  const newDetails = prompt("Edit details:", item.details);
-  if(newDetails===null) return;
+  if(type==="routes") {
+    const newOutbound = prompt("Edit outbound details:", item.outbound);
+    if(newOutbound===null) return;
+    const newInbound = prompt("Edit inbound details:", item.inbound);
+    if(newInbound===null) return;
+    item.outbound = newOutbound;
+    item.inbound = newInbound;
+  } else {
+    const newDetails = prompt("Edit details:", item.details);
+    if(newDetails===null) return;
+    item.details = newDetails;
+  }
   item.name = newName;
-  item.details = newDetails;
   saveData(d); render();
 }
 
@@ -252,11 +268,7 @@ function updateTripDestinations() {
   const direction = tripDirection.value;
   const route = d.routes.find(r=>r.name===routeName);
   if(route) {
-    // Show either the full details or the section containing "Outbound"/"Inbound"
-    let text = route.details;
-    const regex = new RegExp(direction+"[:\\s]*(.*)", "i");
-    const match = text.match(regex);
-    document.getElementById("tripDestinations").textContent = match ? match[1] : text;
+    document.getElementById("tripDestinations").textContent = direction==="outbound"? route.outbound : route.inbound;
   } else {
     document.getElementById("tripDestinations").textContent = "";
   }
@@ -267,7 +279,7 @@ function sell(t){ alert(t+" ticket issued"); }
 
 function render() {
   const d = getData()[currentUser];
-  routeList.innerHTML = d.routes.map((r,i)=>`${r.name}: ${r.details}<div class="edit-delete-btns"><button onclick="editItem('routes',${i})">Edit</button><button onclick="deleteItem('routes',${i})">Delete</button></div>`).join("<br>");
+  routeList.innerHTML = d.routes.map((r,i)=>`${r.name}: Outbound(${r.outbound}) | Inbound(${r.inbound})<div class="edit-delete-btns"><button onclick="editItem('routes',${i})">Edit</button><button onclick="deleteItem('routes',${i})">Delete</button></div>`).join("<br>");
   fleetList.innerHTML = d.fleet.map((v,i)=>`${v.name}: ${v.details}<div class="edit-delete-btns"><button onclick="editItem('fleet',${i})">Edit</button><button onclick="deleteItem('fleet',${i})">Delete</button></div>`).join("<br>");
   boardList.innerHTML = d.boards.map((b,i)=>`${b.name}: ${b.details}<div class="edit-delete-btns"><button onclick="editItem('boards',${i})">Edit</button><button onclick="deleteItem('boards',${i})">Delete</button></div>`).join("<br>");
   updateTripDestinations();
