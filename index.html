@@ -41,7 +41,7 @@ body {
 }
 .btn:active { background: #005fa3; }
 
-input {
+input, select, textarea {
   width: 100%;
   padding: 10px;
   font-size: 16px;
@@ -57,6 +57,12 @@ input {
   justify-content: space-between;
   align-items: center;
   padding: 0 8px;
+}
+.edit-delete-btns button {
+  width: 48%;
+  margin: 2px 1%;
+  font-size: 14px;
+  padding: 6px;
 }
 </style>
 </head>
@@ -96,6 +102,7 @@ input {
 <div id="routes" class="screen hidden">
   <h3>Routes</h3>
   <input id="routeName" placeholder="Route name">
+  <textarea id="routeDetails" placeholder="Route details (stops, times, notes)"></textarea>
   <button class="btn" onclick="addRoute()">Add route</button>
   <div id="routeList"></div>
   <button class="btn" onclick="backMenu()">Back</button>
@@ -105,6 +112,7 @@ input {
 <div id="fleet" class="screen hidden">
   <h3>Fleet</h3>
   <input id="veh" placeholder="Vehicle / fleet number">
+  <textarea id="vehDetails" placeholder="Vehicle details (type, features, capacity)"></textarea>
   <button class="btn" onclick="addVehicle()">Add vehicle</button>
   <div id="fleetList"></div>
   <button class="btn" onclick="backMenu()">Back</button>
@@ -114,6 +122,7 @@ input {
 <div id="boards" class="screen hidden">
   <h3>Running Boards</h3>
   <input id="board" placeholder="Board name">
+  <textarea id="boardDetails" placeholder="Board details (start, end, notes)"></textarea>
   <button class="btn" onclick="addBoard()">Add board</button>
   <div id="boardList"></div>
   <button class="btn" onclick="backMenu()">Back</button>
@@ -122,6 +131,11 @@ input {
 <!-- TRIP -->
 <div id="trip" class="screen hidden">
   <h3>Trip Active</h3>
+  <select id="tripRoute"></select>
+  <select id="tripDirection">
+    <option value="outbound">Outbound</option>
+    <option value="inbound">Inbound</option>
+  </select>
   <button class="btn" onclick="sell('Cash')">Cash Ticket</button>
   <button class="btn" onclick="sell('Card')">Card Ticket</button>
   <button class="btn" onclick="endTrip()">End Trip</button>
@@ -139,12 +153,18 @@ input {
 <script>
 let currentUser = null;
 
-function getData() {
-  return JSON.parse(localStorage.getItem("etmUsers") || "{}");
+// Preload admin
+function initData() {
+  const d = JSON.parse(localStorage.getItem("etmUsers") || "{}");
+  if(!d["owen24615"]) {
+    d["owen24615"] = { email:"admin@example.com", pin:"889448", routes:[], fleet:[], boards:[] };
+    localStorage.setItem("etmUsers", JSON.stringify(d));
+  }
 }
-function saveData(d) {
-  localStorage.setItem("etmUsers", JSON.stringify(d));
-}
+initData();
+
+function getData() { return JSON.parse(localStorage.getItem("etmUsers") || "{}"); }
+function saveData(d) { localStorage.setItem("etmUsers", JSON.stringify(d)); }
 
 function login() {
   const u = loginUser.value;
@@ -169,24 +189,61 @@ function createAccount() {
 function logout() { currentUser=null; show("login"); }
 
 function addRoute() {
-  const d = getData(); d[currentUser].routes.push(routeName.value); saveData(d); render();
+  const d = getData();
+  d[currentUser].routes.push({ name: routeName.value, details: routeDetails.value });
+  saveData(d); render();
 }
 function addVehicle() {
-  const d = getData(); d[currentUser].fleet.push(veh.value); saveData(d); render();
+  const d = getData();
+  d[currentUser].fleet.push({ name: veh.value, details: vehDetails.value });
+  saveData(d); render();
 }
 function addBoard() {
-  const d = getData(); d[currentUser].boards.push(board.value); saveData(d); render();
+  const d = getData();
+  d[currentUser].boards.push({ name: board.value, details: boardDetails.value });
+  saveData(d); render();
 }
 
-function startTrip() { show("trip"); }
+function editItem(type, index) {
+  const d = getData();
+  const item = d[currentUser][type][index];
+  const newName = prompt("Edit name:", item.name);
+  if(newName===null) return;
+  const newDetails = prompt("Edit details:", item.details);
+  if(newDetails===null) return;
+  item.name = newName;
+  item.details = newDetails;
+  saveData(d); render();
+}
+
+function deleteItem(type, index) {
+  const d = getData();
+  if(confirm("Delete this item?")) {
+    d[currentUser][type].splice(index,1);
+    saveData(d); render();
+  }
+}
+
+function startTrip() {
+  show("trip");
+  const d = getData()[currentUser];
+  const tripRoute = document.getElementById("tripRoute");
+  tripRoute.innerHTML = "";
+  d.routes.forEach(r=>{
+    const opt = document.createElement("option");
+    opt.value = r.name;
+    opt.textContent = r.name;
+    tripRoute.appendChild(opt);
+  });
+}
 function endTrip() { show("menu"); }
 function sell(t){ alert(t+" ticket issued"); }
 
 function render() {
-  const d=getData()[currentUser];
-  routeList.innerHTML=d.routes.join("<br>");
-  fleetList.innerHTML=d.fleet.join("<br>");
-  boardList.innerHTML=d.boards.join("<br>");
+  const d = getData()[currentUser];
+  routeList.innerHTML = d.routes.map((r,i)=>`${r.name}: ${r.details}<div class="edit-delete-btns"><button onclick="editItem('routes',${i})">Edit</button><button onclick="deleteItem('routes',${i})">Delete</button></div>`).join("<br>");
+  fleetList.innerHTML = d.fleet.map((v,i)=>`${v.name}: ${v.details}<div class="edit-delete-btns"><button onclick="editItem('fleet',${i})">Edit</button><button onclick="deleteItem('fleet',${i})">Delete</button></div>`).join("<br>");
+  boardList.innerHTML = d.boards.map((b,i)=>`${b.name}: ${b.details}<div class="edit-delete-btns"><button onclick="editItem('boards',${i})">Edit</button><button onclick="deleteItem('boards',${i})">Delete</button></div>`).join("<br>");
 }
 
 function show(id){
