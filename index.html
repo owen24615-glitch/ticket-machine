@@ -1,232 +1,210 @@
 <!DOCTYPE html>
-<html lang="en-GB">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=360, height=640, initial-scale=1, user-scalable=no">
+<title></title>
 
 <style>
-body{
-  margin:0;
-  font-family:system-ui,-apple-system;
-  background:#f0f0f0;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  min-height:100vh;
+* { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
+body {
+  margin: 0;
+  background: #eaeaea;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
 }
-.machine{
-  width:400px;
-  height:90vh;
-  background:#fff;
-  border-radius:12px;
-  box-shadow:0 8px 30px rgba(0,0,0,.4);
-  display:flex;
-  flex-direction:column;
-  overflow:hidden;
+#etm {
+  width: 360px;
+  height: 640px;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  border: 3px solid black;
 }
-.screen{
-  flex:1;
-  padding:12px;
-  font-family:monospace;
-  white-space:pre-line;
-  overflow:auto;
+.screen {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
 }
-.buttons{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:8px;
-  padding:10px;
-}
-button{
-  padding:18px 0;
-  font-size:16px;
-  font-weight:700;
-  border:none;
-  border-radius:6px;
-}
-.blue{background:#0076c8;color:#fff;}
-.green{background:#27ae60;color:#fff;}
-.red{background:#c0392b;color:#fff;}
-.gray{background:#ccc;}
-.admin{background:#8e44ad;color:#fff;}
-.hidden{display:none;}
+.hidden { display: none; }
 
-.bottom-bar{
-  background:#000;
-  color:#fff;
-  font-size:14px;
-  padding:4px 12px;
-  display:flex;
-  justify-content:space-between;
+.btn {
+  background: #0078d7;
+  color: white;
+  border: none;
+  padding: 14px;
+  margin: 6px 0;
+  font-size: 16px;
+  width: 100%;
+}
+.btn:active { background: #005fa3; }
+
+input {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  margin: 6px 0;
+}
+
+.status {
+  height: 36px;
+  background: black;
+  color: white;
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 8px;
 }
 </style>
 </head>
 
 <body>
+<div id="etm">
 
-<div class="machine">
+<!-- LOGIN -->
+<div id="login" class="screen">
+  <h3>Driver Login</h3>
+  <input id="loginUser" placeholder="Username">
+  <input id="loginPin" placeholder="6-digit PIN" type="password">
+  <button class="btn" onclick="login()">Log in</button>
+  <button class="btn" onclick="showCreate()">Create account</button>
+</div>
 
-  <div class="screen" id="screen">ENTER 6-DIGIT PIN</div>
+<!-- CREATE ACCOUNT -->
+<div id="create" class="screen hidden">
+  <h3>Create Account</h3>
+  <input id="newEmail" placeholder="Email">
+  <input id="newUser" placeholder="Username">
+  <input id="newPin" placeholder="6-digit PIN" type="password">
+  <button class="btn" onclick="createAccount()">Create</button>
+  <button class="btn" onclick="backLogin()">Back</button>
+</div>
 
-  <!-- LOGIN -->
-  <div class="buttons" id="loginPad">
-    <button onclick="num(1)">1</button><button onclick="num(2)">2</button><button onclick="num(3)">3</button>
-    <button onclick="num(4)">4</button><button onclick="num(5)">5</button><button onclick="num(6)">6</button>
-    <button onclick="num(7)">7</button><button onclick="num(8)">8</button><button onclick="num(9)">9</button>
-    <button class="red" onclick="clearPin()">CLR</button>
-    <button onclick="num(0)">0</button>
-    <button class="blue" onclick="login()">ENT</button>
-  </div>
+<!-- MAIN MENU -->
+<div id="menu" class="screen hidden">
+  <button class="btn" onclick="showRoutes()">Routes</button>
+  <button class="btn" onclick="showFleet()">Fleet</button>
+  <button class="btn" onclick="showBoards()">Running Boards</button>
+  <button class="btn" onclick="startTrip()">Start Trip</button>
+  <button class="btn" onclick="logout()">Log out</button>
+</div>
 
-  <!-- MAIN -->
-  <div class="buttons hidden" id="mainPad">
-    <button class="green" onclick="startTrip()">START</button>
-    <button class="red" onclick="endTrip()">END</button>
-    <button class="blue" onclick="pickRoute()">ROUTE</button>
-    <button class="blue" onclick="sell('cash')">CASH</button>
-    <button class="blue" onclick="sell('card')">CARD</button>
-    <button class="gray" onclick="companyMenu()">COMPANY</button>
-    <button class="gray" onclick="logout()">LOG OUT</button>
+<!-- ROUTES -->
+<div id="routes" class="screen hidden">
+  <h3>Routes</h3>
+  <input id="routeName" placeholder="Route name">
+  <button class="btn" onclick="addRoute()">Add route</button>
+  <div id="routeList"></div>
+  <button class="btn" onclick="backMenu()">Back</button>
+</div>
 
-    <button class="admin hidden" id="adminView" onclick="adminView()">VIEW</button>
-    <button class="admin hidden" id="adminBack" onclick="adminBack()">BACK</button>
-  </div>
+<!-- FLEET -->
+<div id="fleet" class="screen hidden">
+  <h3>Fleet</h3>
+  <input id="veh" placeholder="Vehicle / fleet number">
+  <button class="btn" onclick="addVehicle()">Add vehicle</button>
+  <div id="fleetList"></div>
+  <button class="btn" onclick="backMenu()">Back</button>
+</div>
 
-  <div class="bottom-bar">
-    <span>📶 WiFi ✔ | 🧾 Paper ✔</span>
-    <span id="time"></span>
-  </div>
+<!-- BOARDS -->
+<div id="boards" class="screen hidden">
+  <h3>Running Boards</h3>
+  <input id="board" placeholder="Board name">
+  <button class="btn" onclick="addBoard()">Add board</button>
+  <div id="boardList"></div>
+  <button class="btn" onclick="backMenu()">Back</button>
+</div>
+
+<!-- TRIP -->
+<div id="trip" class="screen hidden">
+  <h3>Trip Active</h3>
+  <button class="btn" onclick="sell('Cash')">Cash Ticket</button>
+  <button class="btn" onclick="sell('Card')">Card Ticket</button>
+  <button class="btn" onclick="endTrip()">End Trip</button>
+</div>
+
+<!-- STATUS BAR -->
+<div class="status">
+  <span>WiFi ●●●</span>
+  <span>Paper ███</span>
+  <span id="clock"></span>
+</div>
 
 </div>
 
 <script>
-/* ===== DATA ===== */
-const ADMIN_PIN="889448";
-let db=JSON.parse(localStorage.getItem("db")||"{}");
-let pin="",logged=null,viewing=null;
-let activeCompany=null,currentRoute=null,trip=false;
+let currentUser = null;
 
-const screen=document.getElementById("screen");
-
-/* ===== HELPERS ===== */
-function save(){localStorage.setItem("db",JSON.stringify(db));}
-function show(txt){screen.textContent=txt;}
-
-/* ===== KEYPAD ===== */
-function num(n){ if(pin.length<6){pin+=n; show("PIN: "+pin);} }
-function clearPin(){ pin=""; show("ENTER 6-DIGIT PIN"); }
-
-/* ===== LOGIN / ACCOUNT ===== */
-function login(){
-  if(pin.length!==6) return;
-
-  if(!db[pin]){
-    if(pin===ADMIN_PIN){
-      db[pin]={name:"ADMIN",email:"",companies:[],totals:{cash:0,card:0},messages:[]};
-    }else{
-      const email=prompt("Email:");
-      const name=prompt("Username:");
-      if(!email||!name){clearPin();return;}
-      db[pin]={name,email,companies:[],totals:{cash:0,card:0},messages:[]};
-    }
-    save();
-  }
-
-  logged=pin;
-  viewing=pin;
-  pin="";
-  loginPad.classList.add("hidden");
-  mainPad.classList.remove("hidden");
-
-  if(logged===ADMIN_PIN){
-    adminViewBtn(true);
-  }
-  dashboard();
+function getData() {
+  return JSON.parse(localStorage.getItem("etmUsers") || "{}");
+}
+function saveData(d) {
+  localStorage.setItem("etmUsers", JSON.stringify(d));
 }
 
-/* ===== DASHBOARD ===== */
-function dashboard(){
-  const u=db[viewing];
-  show(
-`USER: ${u.name}
-TRIP: ${trip?"ACTIVE":"STOPPED"}
-COMPANY: ${activeCompany?activeCompany.name:"NONE"}
-ROUTE: ${currentRoute||"NONE"}
-
-CASH: £${u.totals.cash.toFixed(2)}
-CARD: £${u.totals.card.toFixed(2)}`
-  );
+function login() {
+  const u = loginUser.value;
+  const p = loginPin.value;
+  const d = getData();
+  if (d[u] && d[u].pin === p) {
+    currentUser = u;
+    show("menu");
+  } else alert("Invalid login");
 }
 
-/* ===== COMPANY ===== */
-function companyMenu(){
-  const u=db[logged];
-  let list=u.companies.map((c,i)=>`${i+1}. ${c.name}`).join("\n");
-  let c=prompt(`COMPANIES:\n${list}\n\nEnter number or NEW`);
-  if(c==="NEW"){
-    if(u.companies.length>=30) return alert("MAX 30");
-    let name=prompt("Company name:");
-    let comp={name,routes:[],fleet:[],boards:[]};
-    u.companies.push(comp);
-    activeCompany=comp;
-  }else{
-    let idx=parseInt(c)-1;
-    if(!u.companies[idx]) return;
-    activeCompany=u.companies[idx];
-  }
-  save(); dashboard();
+function createAccount() {
+  const d = getData();
+  const u = newUser.value;
+  if (d[u]) return alert("User exists");
+  d[u] = { email: newEmail.value, pin: newPin.value, routes: [], fleet: [], boards: [] };
+  saveData(d);
+  alert("Account created");
+  backLogin();
 }
 
-/* ===== ROUTES ===== */
-function pickRoute(){
-  if(!activeCompany) return alert("SELECT COMPANY");
-  let list=activeCompany.routes.map((r,i)=>`${i+1}. ${r.code}`).join("\n");
-  let r=prompt(`ROUTES:\n${list}\n\nEnter number or NEW`);
-  if(r==="NEW"){
-    let code=prompt("Route code:");
-    let fare=parseFloat(prompt("Fare:",2));
-    activeCompany.routes.push({code,fare});
-    currentRoute=code;
-  }else{
-    let idx=parseInt(r)-1;
-    if(!activeCompany.routes[idx]) return;
-    currentRoute=activeCompany.routes[idx].code;
-  }
-  save(); dashboard();
+function logout() { currentUser=null; show("login"); }
+
+function addRoute() {
+  const d = getData(); d[currentUser].routes.push(routeName.value); saveData(d); render();
+}
+function addVehicle() {
+  const d = getData(); d[currentUser].fleet.push(veh.value); saveData(d); render();
+}
+function addBoard() {
+  const d = getData(); d[currentUser].boards.push(board.value); saveData(d); render();
 }
 
-/* ===== TRIPS ===== */
-function startTrip(){ if(!currentRoute) return alert("SELECT ROUTE"); trip=true; dashboard(); }
-function endTrip(){ trip=false; currentRoute=null; dashboard(); }
+function startTrip() { show("trip"); }
+function endTrip() { show("menu"); }
+function sell(t){ alert(t+" ticket issued"); }
 
-/* ===== SALES ===== */
-function sell(type){
-  if(!trip) return alert("START TRIP");
-  db[viewing].totals[type]+=2;
-  save(); dashboard();
+function render() {
+  const d=getData()[currentUser];
+  routeList.innerHTML=d.routes.join("<br>");
+  fleetList.innerHTML=d.fleet.join("<br>");
+  boardList.innerHTML=d.boards.join("<br>");
 }
 
-/* ===== ADMIN ===== */
-function adminViewBtn(showBtn){
-  document.getElementById("adminView").classList.toggle("hidden",!showBtn);
-  document.getElementById("adminBack").classList.toggle("hidden",!showBtn);
+function show(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.add("hidden"));
+  document.getElementById(id).classList.remove("hidden");
+  if(currentUser) render();
 }
-function adminView(){
-  let p=prompt("Driver PIN");
-  if(!db[p]) return;
-  viewing=p; dashboard();
-}
-function adminBack(){ viewing=logged; dashboard(); }
+function showRoutes(){show("routes")}
+function showFleet(){show("fleet")}
+function showBoards(){show("boards")}
+function backMenu(){show("menu")}
+function showCreate(){show("create")}
+function backLogin(){show("login")}
 
-/* ===== LOGOUT ===== */
-function logout(){ location.reload(); }
-
-/* ===== TIME ===== */
-function tick(){
-  time.textContent=new Date().toLocaleTimeString("en-GB",{hour12:false});
-}
-setInterval(tick,1000); tick();
+setInterval(()=>{
+  const d=new Date();
+  clock.textContent=d.toLocaleTimeString()+" "+d.toLocaleDateString();
+},1000);
 </script>
-
 </body>
 </html>
