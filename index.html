@@ -64,6 +64,13 @@ input, select, textarea {
   font-size: 14px;
   padding: 6px;
 }
+#tripDestinations {
+  margin: 6px 0;
+  padding: 10px;
+  background: #f0f0f0;
+  font-size: 14px;
+  min-height: 40px;
+}
 </style>
 </head>
 
@@ -131,11 +138,12 @@ input, select, textarea {
 <!-- TRIP -->
 <div id="trip" class="screen hidden">
   <h3>Trip Active</h3>
-  <select id="tripRoute"></select>
-  <select id="tripDirection">
+  <select id="tripRoute" onchange="updateTripDestinations()"></select>
+  <select id="tripDirection" onchange="updateTripDestinations()">
     <option value="outbound">Outbound</option>
     <option value="inbound">Inbound</option>
   </select>
+  <div id="tripDestinations"></div>
   <button class="btn" onclick="sell('Cash')">Cash Ticket</button>
   <button class="btn" onclick="sell('Card')">Card Ticket</button>
   <button class="btn" onclick="endTrip()">End Trip</button>
@@ -235,7 +243,25 @@ function startTrip() {
     opt.textContent = r.name;
     tripRoute.appendChild(opt);
   });
+  updateTripDestinations();
 }
+
+function updateTripDestinations() {
+  const d = getData()[currentUser];
+  const routeName = tripRoute.value;
+  const direction = tripDirection.value;
+  const route = d.routes.find(r=>r.name===routeName);
+  if(route) {
+    // Show either the full details or the section containing "Outbound"/"Inbound"
+    let text = route.details;
+    const regex = new RegExp(direction+"[:\\s]*(.*)", "i");
+    const match = text.match(regex);
+    document.getElementById("tripDestinations").textContent = match ? match[1] : text;
+  } else {
+    document.getElementById("tripDestinations").textContent = "";
+  }
+}
+
 function endTrip() { show("menu"); }
 function sell(t){ alert(t+" ticket issued"); }
 
@@ -244,6 +270,7 @@ function render() {
   routeList.innerHTML = d.routes.map((r,i)=>`${r.name}: ${r.details}<div class="edit-delete-btns"><button onclick="editItem('routes',${i})">Edit</button><button onclick="deleteItem('routes',${i})">Delete</button></div>`).join("<br>");
   fleetList.innerHTML = d.fleet.map((v,i)=>`${v.name}: ${v.details}<div class="edit-delete-btns"><button onclick="editItem('fleet',${i})">Edit</button><button onclick="deleteItem('fleet',${i})">Delete</button></div>`).join("<br>");
   boardList.innerHTML = d.boards.map((b,i)=>`${b.name}: ${b.details}<div class="edit-delete-btns"><button onclick="editItem('boards',${i})">Edit</button><button onclick="deleteItem('boards',${i})">Delete</button></div>`).join("<br>");
+  updateTripDestinations();
 }
 
 function show(id){
