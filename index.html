@@ -77,7 +77,6 @@ input, select, textarea {
 <body>
 <div id="etm">
 
-<!-- LOGIN -->
 <div id="login" class="screen">
   <h3>Driver Login</h3>
   <input id="loginUser" placeholder="Username">
@@ -86,7 +85,6 @@ input, select, textarea {
   <button class="btn" onclick="showCreate()">Create account</button>
 </div>
 
-<!-- CREATE ACCOUNT -->
 <div id="create" class="screen hidden">
   <h3>Create Account / Company</h3>
   <input id="newEmail" placeholder="Email">
@@ -96,16 +94,15 @@ input, select, textarea {
   <button class="btn" onclick="backLogin()">Back</button>
 </div>
 
-<!-- MAIN MENU -->
 <div id="menu" class="screen hidden">
   <button class="btn" onclick="showRoutes()">Routes</button>
   <button class="btn" onclick="showFleet()">Fleet</button>
   <button class="btn" onclick="showBoards()">Running Boards</button>
+  <button class="btn" onclick="show('message')">Driver Messages</button>
   <button class="btn" onclick="startTrip()">Start Trip</button>
   <button class="btn" onclick="logout()">Log out</button>
 </div>
 
-<!-- ROUTES -->
 <div id="routes" class="screen hidden">
   <h3>Routes</h3>
   <input id="routeName" placeholder="Route name">
@@ -116,7 +113,6 @@ input, select, textarea {
   <button class="btn" onclick="backMenu()">Back</button>
 </div>
 
-<!-- FLEET -->
 <div id="fleet" class="screen hidden">
   <h3>Fleet</h3>
   <input id="veh" placeholder="Vehicle / fleet number">
@@ -126,17 +122,24 @@ input, select, textarea {
   <button class="btn" onclick="backMenu()">Back</button>
 </div>
 
-<!-- BOARDS -->
 <div id="boards" class="screen hidden">
   <h3>Running Boards</h3>
   <input id="board" placeholder="Board name">
+  <select id="boardRoutes" multiple></select>
   <textarea id="boardDetails" placeholder="Board details (start, end, notes)"></textarea>
   <button class="btn" onclick="addBoard()">Add board</button>
   <div id="boardList"></div>
   <button class="btn" onclick="backMenu()">Back</button>
 </div>
 
-<!-- TRIP -->
+<div id="message" class="screen hidden">
+  <h3>Driver Messages</h3>
+  <textarea id="msgText" placeholder="Message to all drivers"></textarea>
+  <button class="btn" onclick="sendMsg()">Send</button>
+  <div id="msgList"></div>
+  <button class="btn" onclick="backMenu()">Back</button>
+</div>
+
 <div id="trip" class="screen hidden">
   <h3>Trip Active</h3>
   <select id="tripRoute" onchange="updateTripDestinations()"></select>
@@ -150,7 +153,6 @@ input, select, textarea {
   <button class="btn" onclick="endTrip()">End Trip</button>
 </div>
 
-<!-- STATUS BAR -->
 <div class="status">
   <span>WiFi ●●●</span>
   <span>Paper ███</span>
@@ -162,7 +164,6 @@ input, select, textarea {
 <script>
 let currentUser = null;
 
-// Preload admin
 function initData() {
   const d = JSON.parse(localStorage.getItem("etmUsers") || "{}");
   if(!d["owen24615"]) {
@@ -191,7 +192,7 @@ function createAccount() {
   if (d[u]) return alert("User exists");
   d[u] = { email: newEmail.value, pin: newPin.value, routes: [], fleet: [], boards: [] };
   saveData(d);
-  alert("Account / Company created");
+  alert("Account created");
   backLogin();
 }
 
@@ -215,43 +216,28 @@ function addVehicle() {
 
 function addBoard() {
   const d = getData();
-  d[currentUser].boards.push({ name: board.value, details: boardDetails.value });
+  const selected = [...boardRoutes.selectedOptions].map(o=>o.value);
+  d[currentUser].boards.push({ name: board.value, routes:selected, details: boardDetails.value });
   saveData(d); render();
 }
 
-function editItem(type, index) {
-  const d = getData();
-  const item = d[currentUser][type][index];
-  const newName = prompt("Edit name:", item.name);
-  if(newName===null) return;
-  if(type==="routes") {
-    const newOutbound = prompt("Edit outbound details:", item.outbound);
-    if(newOutbound===null) return;
-    const newInbound = prompt("Edit inbound details:", item.inbound);
-    if(newInbound===null) return;
-    item.outbound = newOutbound;
-    item.inbound = newInbound;
-  } else {
-    const newDetails = prompt("Edit details:", item.details);
-    if(newDetails===null) return;
-    item.details = newDetails;
-  }
-  item.name = newName;
-  saveData(d); render();
+function sendMsg(){
+  const d=getData();
+  if(!d.messages) d.messages=[];
+  d.messages.push(currentUser+": "+msgText.value);
+  saveData(d);
+  renderMsgs();
 }
 
-function deleteItem(type, index) {
-  const d = getData();
-  if(confirm("Delete this item?")) {
-    d[currentUser][type].splice(index,1);
-    saveData(d); render();
-  }
+function renderMsgs(){
+  const d=getData();
+  if(!d.messages) return;
+  msgList.innerHTML=d.messages.join("<br>");
 }
 
 function startTrip() {
   show("trip");
   const d = getData()[currentUser];
-  const tripRoute = document.getElementById("tripRoute");
   tripRoute.innerHTML = "";
   d.routes.forEach(r=>{
     const opt = document.createElement("option");
@@ -264,14 +250,10 @@ function startTrip() {
 
 function updateTripDestinations() {
   const d = getData()[currentUser];
-  const routeName = tripRoute.value;
-  const direction = tripDirection.value;
-  const route = d.routes.find(r=>r.name===routeName);
+  const route = d.routes.find(r=>r.name===tripRoute.value);
   if(route) {
-    document.getElementById("tripDestinations").textContent = direction==="outbound"? route.outbound : route.inbound;
-  } else {
-    document.getElementById("tripDestinations").textContent = "";
-  }
+    tripDestinations.textContent = tripDirection.value==="outbound"? route.outbound : route.inbound;
+  } else tripDestinations.textContent="";
 }
 
 function endTrip() { show("menu"); }
@@ -279,10 +261,28 @@ function sell(t){ alert(t+" ticket issued"); }
 
 function render() {
   const d = getData()[currentUser];
-  routeList.innerHTML = d.routes.map((r,i)=>`${r.name}: Outbound(${r.outbound}) | Inbound(${r.inbound})<div class="edit-delete-btns"><button onclick="editItem('routes',${i})">Edit</button><button onclick="deleteItem('routes',${i})">Delete</button></div>`).join("<br>");
-  fleetList.innerHTML = d.fleet.map((v,i)=>`${v.name}: ${v.details}<div class="edit-delete-btns"><button onclick="editItem('fleet',${i})">Edit</button><button onclick="deleteItem('fleet',${i})">Delete</button></div>`).join("<br>");
-  boardList.innerHTML = d.boards.map((b,i)=>`${b.name}: ${b.details}<div class="edit-delete-btns"><button onclick="editItem('boards',${i})">Edit</button><button onclick="deleteItem('boards',${i})">Delete</button></div>`).join("<br>");
-  updateTripDestinations();
+
+  routeList.innerHTML = d.routes.map((r,i)=>`${r.name}<div class="edit-delete-btns"><button onclick="deleteItem('routes',${i})">Delete</button></div>`).join("<br>");
+  fleetList.innerHTML = d.fleet.map((v,i)=>`${v.name}<div class="edit-delete-btns"><button onclick="deleteItem('fleet',${i})">Delete</button></div>`).join("<br>");
+
+  boardRoutes.innerHTML="";
+  d.routes.forEach(r=>{
+    let o=document.createElement("option");
+    o.value=r.name;
+    o.textContent=r.name;
+    boardRoutes.appendChild(o);
+  });
+
+  boardList.innerHTML = d.boards.map((b,i)=>`${b.name}: ${b.routes.join(", ")}<div class="edit-delete-btns"><button onclick="deleteItem('boards',${i})">Delete</button></div>`).join("<br>");
+  renderMsgs();
+}
+
+function deleteItem(type, index) {
+  const d = getData();
+  if(confirm("Delete?")) {
+    d[currentUser][type].splice(index,1);
+    saveData(d); render();
+  }
 }
 
 function show(id){
